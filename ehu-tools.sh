@@ -1,4 +1,4 @@
-#!/bin/bash -xvf
+#!/bin/bash
 
 # Define main paths
 BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
