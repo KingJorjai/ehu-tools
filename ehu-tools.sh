@@ -3,7 +3,7 @@
 # Define main paths
 BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
-VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
+VPN_CLIENT="/opt/cisco/anyconnect/bin/vp"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
@@ -50,8 +50,14 @@ get_2fa_token() {
     fi
 }
 
+
 # Function to connect to the VPN
 connect_vpn() {
+    if is_vpn_connected; then
+        echo " ✅ You are already connected to the VPN."
+        return
+    fi
+
     # Check if credentials exist
     if [[ -f $CREDENTIAL_FILE ]]; then
         source "$CREDENTIAL_FILE"
@@ -63,21 +69,9 @@ connect_vpn() {
         return
     fi
 
-
-    # Check vpn client
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo " ❌ VPN client not found or not executable: $VPN_CLIENT"
-        return
-    fi
-
     # Check if the oathtool command is available on the system
     if ! command -v oathtool &> /dev/null; then
         echo " ❌ The oathtool command is not installed. Install it before proceeding."
-        return
-    fi
-
-    if is_vpn_connected; then
-        echo " ✅ You are already connected to the VPN."
         return
     fi
 
@@ -89,50 +83,92 @@ connect_vpn() {
         return 1
     fi
 
-    echo " 🔑 Connecting to VPN as $username..."
+    # Check Cisco VPN client
+    if [[ ! -x "$VPN_CLIENT" ]]; then
+        echo " ❌ Cisco VPN not found or not executable: $VPN_CLIENT."
 
-    # Send credentials to the VPN client and start login, logging the process
-    {
-        echo "[$(date)] Attempting connection with user: $username"
-        $VPN_CLIENT -s <<EOF
+        # Cisco VPN client not available
+        # try to use openconnect
+        if command -v openconnect &> /dev/null; then
+            echo " 🌐 Falling back to openconnect (has to be run as root)."
+            echo " 🔑 Connecting to VPN as $username..."
+            (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=anyconnect vpn.ehu.eus > /dev/null 2>&1
+            echo " ✅ VPN connected."
+        else
+            echo " ❌ Could not find a compatible VPN client. Read the documentation for more information."
+        fi
+
+    # Use Cisco VPN client
+    else
+
+        echo " 🔑 Connecting to VPN as $username..."
+
+        # Send credentials to the VPN client and start login, logging the process
+        {
+            echo "[$(date)] Attempting connection with user: $username"
+            $VPN_CLIENT -s <<EOF
 connect $VPN_SERVER
 $username
 $password
 $token
 EOF
-        echo "[$(date)] Connection successful."
-    } >> "$LOG_FILE" 2>&1
+            echo "[$(date)] Connection successful."
+        } >> "$LOG_FILE" 2>&1
 
-    echo " ✅ VPN connected."
+        echo " ✅ VPN connected."
     
-    # Clear sensitive variables from memory
-    unset username password token
+        # Clear sensitive variables from memory
+        unset username password token
+    fi
 }
+
+
+
 
 # Function to check if the VPN is connected
 is_vpn_connected() {
     if [[ ! -x "$VPN_CLIENT" ]]; then
-        return 1
+        # Check if openconnect is running
+        if ps -A | grep -q '[o]penconnect'; then
+            # openconnect is running
+            return 0
+        else
+            return 1
+        fi
+    else
+        # Check VPN connection status using the provided VPN client
+        "$VPN_CLIENT" -s status | grep -q "Connected"
     fi
-
-    "$VPN_CLIENT" -s status | grep -q "Connected"
 }
 
 # Function to disconnect from the VPN
 disconnect_vpn() {
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo "❌ VPN client path not set."
-        return 1
-    fi
-
     if ! is_vpn_connected; then
         echo " ✅ VPN is already disconnected."
         return 0
     fi
 
-    echo " 🔌 Disconnecting VPN..."
-    "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
-    echo " ✅ VPN disconnected."
+    if [[ ! -x "$VPN_CLIENT" ]]; then
+        echo " ❌ Cisco VPN not found or not executable: $VPN_CLIENT."
+
+        # Cisco VPN client not available
+        # try to use openconnect
+        if command -v openconnect &> /dev/null; then
+            echo " 🌐 Falling back to openconnect (has to be run as root)."
+            sudo pkill -SIGINT openconnect
+            echo " 🔌 Disconnecting VPN..."
+            sleep 1 # Wait for the process to finish
+            echo " ✅ VPN disconnected."
+
+        else
+            echo " ❌ Could not find a compatible VPN client. Read the documentation for more information."
+        fi
+    else
+        echo " 🔌 Disconnecting VPN..."
+        "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
+        echo " ✅ VPN disconnected."
+    fi
+
 }
 
 
