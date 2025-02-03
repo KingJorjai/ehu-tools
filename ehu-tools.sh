@@ -3,7 +3,7 @@
 # Define main paths
 BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
-VPN_PATH_FILE="$BASE_DIR/vpn_path.sh"
+VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
@@ -50,22 +50,6 @@ get_2fa_token() {
     fi
 }
 
-
-setup_vpn_path() {
-    echo "Enter your Cisco Anyconnect Secure Mobility Client VPN file path:"
-    read -r -p "$CLI_PROMPT" vpn_path
-
-    if [[ ! -f "$vpn_path" ]]; then
-        echo " ❌ Invalid VPN client path. File does not exist."
-        return 1
-    fi
-
-    echo "vpn_path=$vpn_path" > "$VPN_PATH_FILE"
-
-    unset vpn_path
-    echo " ✅ VPN path saved successfully."
-}
-
 # Function to connect to the VPN
 connect_vpn() {
     # Check if credentials exist
@@ -79,14 +63,10 @@ connect_vpn() {
         return
     fi
 
-    # Verify if the VPN binary exists and is executable
-    if [[ -f $VPN_PATH_FILE ]]; then
-    source "$VPN_PATH_FILE"
-    fi
 
-    # Check the path is valid
-    if [[ -z "$vpn_path" ]]; then
-        echo " ❌ VPN client not found or not executable: $vpn_path"
+    # Check vpn client
+    if [[ ! -x "$VPN_CLIENT" ]]; then
+        echo " ❌ VPN client not found or not executable: $VPN_CLIENT"
         return
     fi
 
@@ -114,7 +94,7 @@ connect_vpn() {
     # Send credentials to the VPN client and start login, logging the process
     {
         echo "[$(date)] Attempting connection with user: $username"
-        $vpn_path -s <<EOF
+        $VPN_CLIENT -s <<EOF
 connect $VPN_SERVER
 $username
 $password
@@ -131,20 +111,16 @@ EOF
 
 # Function to check if the VPN is connected
 is_vpn_connected() {
-    if [[ -z "$vpn_path" ]]; then
-        return 1  # VPN path not set, assume not connected
+    if [[ ! -x "$VPN_CLIENT" ]]; then
+        return 1
     fi
 
-    "$vpn_path" -s status | grep -q "Connected"
+    "$VPN_CLIENT" -s status | grep -q "Connected"
 }
 
 # Function to disconnect from the VPN
 disconnect_vpn() {
-    if [[ -f $VPN_PATH_FILE ]]; then
-        source "$VPN_PATH_FILE"
-    fi
-
-    if [[ -z "$vpn_path" ]]; then
+    if [[ ! -x "$VPN_CLIENT" ]]; then
         echo "❌ VPN client path not set."
         return 1
     fi
@@ -155,7 +131,7 @@ disconnect_vpn() {
     fi
 
     echo " 🔌 Disconnecting VPN..."
-    "$vpn_path" -s disconnect &>> "$LOG_FILE"
+    "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
     echo " ✅ VPN disconnected."
 }
 
@@ -170,10 +146,9 @@ menu() {
         echo "       🌐 EHU TOOLS 🛠️"
         echo "=============================="
         echo " 1️⃣  Connect to VPN"
-        echo " 2️⃣  Set LDAP credentials"
-        echo " 3️⃣  Set 2FA secret"
-        echo " 4️⃣  Set VPN path"
-        echo " 5️⃣  Disconnect from VPN"
+        echo " 2️⃣  Disconnect from VPN"
+        echo " 3️⃣  Set LDAP credentials"
+        echo " 4️⃣  Set 2FA secret"
         echo " 0️⃣  Exit"
         echo "=============================="
         read -rsn1 option  # Read a single character without requiring Enter
@@ -181,10 +156,9 @@ menu() {
 
         case "$option" in
             1) connect_vpn ;;
-            2) setup_ldap ;;
-            3) setup_2fa ;;
-            4) setup_vpn_path ;;
-            5) disconnect_vpn ;;
+            2) disconnect_vpn ;;
+            3) setup_ldap ;;
+            4) setup_2fa ;;
             0) echo " 👋 Exiting..."; exit 0 ;;  # Exit the program
             *) echo " ❌ Invalid option, try again." ;;  # Handle invalid input
         esac
