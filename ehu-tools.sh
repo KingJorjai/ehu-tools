@@ -3,7 +3,7 @@
 # Define main paths
 BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
-VPN_CLIENT="/opt/cisco/anyconnect/bin/vp"
+VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
