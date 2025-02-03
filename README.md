@@ -1,6 +1,6 @@
 # 🌐 EHU Tools 🛠  
 
-A set of CLI utilities for managing VPN connections, LDAP authentication, and 2FA for the **University of the Basque Country (EHU)**.  
+A set of CLI utilities for managing LDAP authentication, VPN connections, and 2FA for the **University of the Basque Country (UPV/EHU)**.  
 
 ## 🚀 Features  
 - 🔑 **LDAP Authentication**: Store and use your EHU credentials securely.  
@@ -9,9 +9,11 @@ A set of CLI utilities for managing VPN connections, LDAP authentication, and 2F
 - ⚙️ **Interactive Menu**: Simple text-based UI for easy configuration.
 
 ## 🔧 Requirements
-- bash
-- oathtool (for 2FA support)
-- Cisco Anyconnect Secure Mobility Client (for VPN connection) (planned to switch to openconnect)
+- `bash`
+- `oathtool` (for 2FA support)
+- One of the following VPN Clients
+  - `Cisco Anyconnect Secure Mobility Client` (no root required)
+  - `openconnect` (root required) 
 
 ## 📥 Installation  
 
