@@ -1,7 +1,7 @@
 #!/bin/bash -xvf
 
 # Define main paths
-BASE_DIR="$HOME/.ehu-tools"  # Base directory for the application
+BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
 VPN_PATH_FILE="$BASE_DIR/vpn_path.sh"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
