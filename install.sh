@@ -42,9 +42,12 @@ install_ehutools() {
 #---------# CISCO FUNCTIONS #---------#
 
 install_cisco() {
+    curl -sSL -o "$HOME/cisco_install.sh" $GITHUB_CISCOINSTALL_URL
+    chmod +x "$HOME/cisco_install.sh"
     divider
-    curl -L $GITHUB_CISCOINSTALL_URL | bash
+    "$HOME/cisco_install.sh"
     divider
+    rm "$HOME/cisco_install.sh"
 }
 
 is_cisco_installed() {
