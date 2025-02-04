@@ -9,7 +9,7 @@ INSTALL_NAME="ehu-tools"
 # GITHUB
 GITHUB_BASE_URL="https://raw.githubusercontent.com/KingJorjai/ehu-tools/refs/heads/"
 GITHUB_EHUTOOLS_URL="$GITHUB_BASE_URL/main/ehu-tools.sh"
-GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/develop/cisco_install.sh"
+GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
 
 # CISCO
 CISCO_VPN_FILE="/opt/cisco/anyconnect/bin/vpn"
