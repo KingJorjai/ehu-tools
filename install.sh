@@ -65,7 +65,7 @@ trap_ctrl_c() {
 }
 
 press_any_key_to_continue() {
-    read -rsn1 -p "[↪️] Press any key to continue."
+    read -rsn1 -p "[↪️] Press any key to continue." < /dev/tty
 }
 
 divider() {
