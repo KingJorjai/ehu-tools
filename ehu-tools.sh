@@ -204,5 +204,10 @@ menu() {
     done
 }
 
+##### MAIN PROGRAM #####
+
+# Create config folder if not already
+mkdir -p $BASE_DIR
+
 # Run the main menu
 menu
