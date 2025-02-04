@@ -47,7 +47,7 @@ install_cisco() {
     if cd "$FOLDER/vpn/"; then
         echo "[🌐] Installing Cisco Anyconnect Secure Mobility Client..."
         divider
-        echo "y" | sudo ./vpn_install.sh
+        sudo ./vpn_install.sh
         divider
         install_status=$?
     else
