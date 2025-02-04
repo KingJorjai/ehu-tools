@@ -1,5 +1,6 @@
 # TODO
 - [ ] Allow automatically installing `CASMC` in `install.sh`.
+    - [x] Create `CASMC` installation script.
 - [ ] Allow configuring ehu-tool in `install.sh`.
 - [ ] Add SSH server manager.
 
