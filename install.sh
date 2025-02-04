@@ -119,4 +119,5 @@ fi
 #----------------------------#
 
 press_any_key_to_continue
+
 restore_user_screen
