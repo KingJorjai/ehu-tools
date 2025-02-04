@@ -8,28 +8,34 @@ FOLDER="$HOME/anyconnect-linux64-4.10.08029"
 
 #---------# FUNCTIONS #---------#
 
+divider() {
+    printf '%*s\n' "$(tput cols)" '' | tr ' ' '-'
+}
+
 remove_installation_files() {
-    echo "Cleaning up installation files..."
+    echo "[♻️] Cleaning up installation files..."
     rm -rf "$FOLDER" "$FILE" || echo "Error removing the files."
 }
 
 download_cisco() {
-    echo "Downloading Cisco Anyconnect Secure Mobility Client..."
+    echo "[📥] Downloading Cisco Anyconnect Secure Mobility Client..."
+    divider
     wget -O "$FILE" "$URL"
+    divider
 
     if [ $? -ne 0 ]; then
-        echo "Error downloading the file."
+        echo "[⚠️] Error downloading the file."
         remove_installation_files
         exit 1
     fi
 }
 
 extract_cisco() {
-    echo "Extracting the file..."
+    echo "[↕️] Extracting the file..."
     if tar -xzf "$FILE" -C "$HOME"; then
-        echo "File extracted successfully"
+        echo "[✅] File extracted successfully"
     else
-        echo "Error extracting the file."
+        echo "[⚠️] Error extracting the file."
         remove_installation_files
         exit 1
     fi
@@ -39,11 +45,13 @@ install_cisco() {
     prev_dir=$(pwd)
 
     if cd "$FOLDER/vpn/"; then
-        echo "Installing Cisco Anyconnect Secure Mobility Client..."
+        echo "[🌐] Installing Cisco Anyconnect Secure Mobility Client..."
+        divider
         echo "y" | sudo ./vpn_install.sh
+        divider
         install_status=$?
     else
-        echo "Error attempting to start Cisco Anyconnect Secure Mobility Client installation."
+        echo "[⚠️] Error attempting to start Cisco Anyconnect Secure Mobility Client installation."
         remove_installation_files
         exit 1
     fi
@@ -51,12 +59,12 @@ install_cisco() {
     cd "$prev_dir"
 
     if [ $install_status -ne 0 ]; then
-        echo "Error during installation."
+        echo "[⚠️] Error during installation."
         remove_installation_files
         exit 1
     fi
 
-    echo "Installation completed successfully."
+    echo "[✅] Installation completed successfully."
 }
 
 #---------# SCRIPT #---------#
