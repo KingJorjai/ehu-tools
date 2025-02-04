@@ -13,8 +13,8 @@ remove_installation_files() {
     rm -rf "$FOLDER" "$FILE" || echo "Error removing the files."
 }
 
-download_anyconnect() {
-    echo "Downloading AnyConnect..."
+download_cisco() {
+    echo "Downloading Cisco Anyconnect Secure Mobility Client..."
     wget -O "$FILE" "$URL"
 
     if [ $? -ne 0 ]; then
@@ -24,7 +24,7 @@ download_anyconnect() {
     fi
 }
 
-extract_anyconnect() {
+extract_cisco() {
     echo "Extracting the file..."
     if tar -xzf "$FILE" -C "$HOME"; then
         echo "File extracted successfully"
@@ -35,15 +35,15 @@ extract_anyconnect() {
     fi
 }
 
-install_anyconnect() {
+install_cisco() {
     prev_dir=$(pwd)
 
     if cd "$FOLDER/vpn/"; then
-        echo "Installing AnyConnect..."
+        echo "Installing Cisco Anyconnect Secure Mobility Client..."
         echo "y" | sudo ./vpn_install.sh
         install_status=$?
     else
-        echo "Error attempting to start AnyConnect installation."
+        echo "Error attempting to start Cisco Anyconnect Secure Mobility Client installation."
         remove_installation_files
         exit 1
     fi
@@ -61,8 +61,8 @@ install_anyconnect() {
 
 #---------# SCRIPT #---------#
 
-download_anyconnect
-extract_anyconnect
-install_anyconnect
+download_cisco
+extract_cisco
+install_cisco
 
 remove_installation_files
