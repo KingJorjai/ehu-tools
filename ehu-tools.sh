@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Define main paths
+#---------# VARIABLES #---------#
+
 BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
 VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
@@ -9,7 +10,8 @@ SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
 CLI_PROMPT=" > "
 
-# Function to save credentials
+#---------# SETUP FUNCTIONS #---------#
+
 setup_ldap() {
     echo " 🔑 Enter your LDAP username:"
     read -r -p "$CLI_PROMPT" username
@@ -37,6 +39,7 @@ setup_2fa() {
     echo " ✅ 2FA secret saved successfully."
 }
 
+#---------# CONNECTION FUNCTIONS #---------#
 
 get_2fa_token() {
     if [[ -f "$SECRET_2FA_FILE" ]]; then
@@ -50,9 +53,23 @@ get_2fa_token() {
     fi
 }
 
+is_vpn_connected() {
+    if [[ ! -x "$VPN_CLIENT" ]]; then
+        # Check if openconnect is running
+        if ps -A | grep -q '[o]penconnect'; then
+            # openconnect is running
+            return 0
+        else
+            return 1
+        fi
+    else
+        # Check VPN connection status using the provided VPN client
+        "$VPN_CLIENT" -s status | grep -q "Connected"
+    fi
+}
 
-# Function to connect to the VPN
 connect_vpn() {
+    # Check if already connected
     if is_vpn_connected; then
         echo " ✅ You are already connected to the VPN."
         return
@@ -75,7 +92,7 @@ connect_vpn() {
         return
     fi
 
-    # Obtain the 2FA code using the 2fa tool
+    # Obtain the 2FA code
     echo " 🔄 Obtaining 2FA code..."
     token="$(get_2fa_token)"
     if [[ -z "$token" ]]; then
@@ -122,32 +139,14 @@ EOF
     fi
 }
 
-
-
-
-# Function to check if the VPN is connected
-is_vpn_connected() {
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        # Check if openconnect is running
-        if ps -A | grep -q '[o]penconnect'; then
-            # openconnect is running
-            return 0
-        else
-            return 1
-        fi
-    else
-        # Check VPN connection status using the provided VPN client
-        "$VPN_CLIENT" -s status | grep -q "Connected"
-    fi
-}
-
-# Function to disconnect from the VPN
 disconnect_vpn() {
+    # Check if already disconnected
     if ! is_vpn_connected; then
         echo " ✅ VPN is already disconnected."
         return 0
     fi
 
+    # Check Cisco VPN client
     if [[ ! -x "$VPN_CLIENT" ]]; then
         echo " ❌ Cisco VPN not found or not executable: $VPN_CLIENT."
 
@@ -171,9 +170,8 @@ disconnect_vpn() {
 
 }
 
+#---------# CLI FUNCTIONS #---------#
 
-
-# Function to display the interactive menu
 menu() {
     printf '\n%.0s' $(seq 1 $(tput lines))
     while true; do
@@ -204,7 +202,7 @@ menu() {
     done
 }
 
-##### MAIN PROGRAM #####
+#---------# SCRIPT #---------#
 
 # Create config folder if not already
 mkdir -p $BASE_DIR

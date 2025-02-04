@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# Define installation path
+#---------# VARIABLES #---------#
+
 INSTALL_DIR="$HOME/.local/bin"
 SCRIPT_NAME="ehu-tools"
 SCRIPT_URL="https://raw.githubusercontent.com/KingJorjai/ehu-tools/refs/heads/main/ehu-tools.sh"
+
+#---------# SCRIPT #---------#
 
 # Ensure the installation directory exists
 mkdir -p "$INSTALL_DIR"
