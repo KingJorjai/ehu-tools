@@ -42,12 +42,7 @@ install_ehutools() {
 #---------# CISCO FUNCTIONS #---------#
 
 install_cisco() {
-    curl -sSL -o "$HOME/cisco_install.sh" $GITHUB_CISCOINSTALL_URL
-    chmod +x "$HOME/cisco_install.sh"
-    divider
-    "$HOME/cisco_install.sh"
-    divider
-    rm "$HOME/cisco_install.sh"
+    curl -sSL $GITHUB_CISCOINSTALL_URL | bash
 }
 
 is_cisco_installed() {
@@ -81,7 +76,7 @@ divider() {
 # $1 - The question to ask
 yes_no_question() {
     while true; do
-        read -r -p "$1 ([y]es/[n]o): " opt
+        read -r -p "$1 ([y]es/[n]o): " opt < /dev/tty
         case "${opt,,}" in
             y|yes) return 0 ;;
             n|no) return 1 ;;
