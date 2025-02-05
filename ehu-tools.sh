@@ -3,15 +3,17 @@
 #---------# VARIABLES #---------#
 
 # VPN
-VPN_SERVER="vpn.ehu.es"  # EHU VPN server
+VPN_SERVER="vpn.ehu.es"
 VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
 
 # EHUTOOLS
-BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
+BASE_DIR="$HOME/.config/ehu-tools"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 SSH_SERVERS_FILE="$BASE_DIR/ssh_servers.csv"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
+
+# MISCELLANEOUS
 CLI_PROMPT=" > "
 
 #---------# SETUP FUNCTIONS #---------#
@@ -33,13 +35,13 @@ setup_2fa() {
     echo "[🛡️] Enter your 2FA secret:"
     read -r -p "$CLI_PROMPT" secret_2fa  # Read the 2FA secret
 
-    # Guardar el secreto 2FA en el archivo, asegurándose de que se sobreescriba el archivo
+    # Save the secret
     echo "secret_2fa=$secret_2fa" > "$SECRET_2FA_FILE"
 
-    # Borrar la variable secreta de la memoria
+    # Clear the secret from the memory
     unset secret_2fa
 
-    # Confirmación
+    # Confirmation
     echo "[✅] 2FA secret saved successfully."
 }
 
@@ -332,6 +334,7 @@ create_menu() {
         echo "       🌐 EHU TOOLS 🛠️"
         echo "=============================="
 
+        # Print each option
         for key in $(printf "%s\n" "${!menu_options[@]}" | sort -n); do
             emoji_key=$(number_to_emoji "$key")
             echo " $emoji_key  ${menu_options[$key]%%:*}"  # Show only the description
@@ -346,13 +349,13 @@ create_menu() {
             return 1
         fi
 
-        read -r -p "$CLI_PROMPT" option  # Read a single character without requiring Enter
+        read -r -p "$CLI_PROMPT" option # Read user input
         echo  # Move to a new line
 
         if [[ "$option" == "0" ]]; then
             return 0
         elif [[ -n "${menu_options[$option]}" ]]; then
-            eval "${menu_options[$option]#*:}"  # Ejecuta el comando asociado
+            eval "${menu_options[$option]#*:}"  # Execute the associated command
         else
             echo "[❌] Invalid option, try again."
         fi
