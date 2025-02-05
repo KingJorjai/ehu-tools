@@ -172,34 +172,48 @@ disconnect_vpn() {
 
 #---------# CLI FUNCTIONS #---------#
 
-menu() {
+# $1 - Number of options
+create_menu() {
+    local -n menu_options=$1  # Array asociativo con las opciones y sus comandos
+
     printf '\n%.0s' $(seq 1 $(tput lines))
     while true; do
         clear -x  # Clear screen before displaying the menu
         echo "=============================="
         echo "       🌐 EHU TOOLS 🛠️"
         echo "=============================="
-        echo " 1️⃣  Connect to VPN"
-        echo " 2️⃣  Disconnect from VPN"
-        echo " 3️⃣  Set LDAP credentials"
-        echo " 4️⃣  Set 2FA secret"
+
+        for key in $(printf "%s\n" "${!menu_options[@]}" | sort -n); do
+            echo " $key️⃣  ${menu_options[$key]%%:*}"  # Muestra solo la descripción
+        done
+
         echo " 0️⃣  Exit"
         echo "=============================="
         read -rsn1 option  # Read a single character without requiring Enter
         echo  # Move to a new line
 
-        case "$option" in
-            1) connect_vpn ;;
-            2) disconnect_vpn ;;
-            3) setup_ldap ;;
-            4) setup_2fa ;;
-            0) echo " 👋 Exiting..."; exit 0 ;;  # Exit the program
-            *) echo " ❌ Invalid option, try again." ;;  # Handle invalid input
-        esac
+        if [[ "$option" == "0" ]]; then
+            echo " 👋 Exiting..."
+            exit 0
+        elif [[ -n "${menu_options[$option]}" ]]; then
+            eval "${menu_options[$option]#*:}"  # Ejecuta el comando asociado
+        else
+            echo " ❌ Invalid option, try again."
+        fi
 
         echo " ↪️ Press any key to continue."
         read -rsn1
     done
+}
+
+main_menu() {
+    declare -A options=(
+    [1]="Connect to VPN:connect_vpn"
+    [2]="Disconnect from VPN:disconnect_vpn"
+    [3]="Set LDAP credentials:setup_ldap"
+    [4]="Set 2FA secret:setup_2fa"
+)
+    create_menu options
 }
 
 #---------# SCRIPT #---------#
@@ -208,4 +222,4 @@ menu() {
 mkdir -p $BASE_DIR
 
 # Run the main menu
-menu
+main_menu
