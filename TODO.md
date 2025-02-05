@@ -1,11 +1,11 @@
 # TODO
 - [ ] Allow configuring ehu-tool in `install.sh`.
-- [ ] Add SSH server manager.
-    - [x] Add SSH menu.
-    - [ ] Implement add, remove and connect functions.
-    - [ ] Save SSH connections in a file.
 
 # COMPLETED
+- [x] Add SSH server manager.
+    - [x] Add SSH menu.
+    - [x] Implement add, remove and connect functions.
+    - [x] Save SSH connections in a file.
 - [x] Allow automatically installing `CASMC` in `install.sh`.
     - [x] Create `CASMC` installation script.
 - [x] Support basic connection via `CASMC`.
