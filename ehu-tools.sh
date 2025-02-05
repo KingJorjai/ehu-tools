@@ -2,11 +2,15 @@
 
 #---------# VARIABLES #---------#
 
-BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
+# VPN
 VPN_SERVER="vpn.ehu.es"  # EHU VPN server
 VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
+
+# EHUTOOLS
+BASE_DIR="$HOME/.config/ehu-tools"  # Base directory for the application
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
+SSH_SERVERS_FILE="$BASE_DIR/ssh_servers.csv"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
 CLI_PROMPT=" > "
 
@@ -170,24 +174,120 @@ disconnect_vpn() {
 
 }
 
-#---------# SSH FUNCTIONS #---------#
+#---------# SSH MANAGER FUNCTIONS #---------#
 
-ssh_connect() {
-    # Check arguments
-    if [ -z "$1" ] || [ -z "$2" ]; then
+# Function to add an SSH server to the CSV file
+# $1 - user
+# $2 - host
+# ($3) - port
+add_ssh_server_worker() {
+    local user="$1"
+    local host="$2"
+    local port="${3:-22}"  # Optional port, defaults to 22
+
+    if [[ -z "$user" || -z "$host" ]]; then
+        echo "[❌] User and host are required parameters."
+        return 2
+    fi
+
+    # Create the file with a header if it doesn't exist
+    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+        echo "user,host,port" > "$SSH_SERVERS_FILE"
+    fi
+
+    # Check if the connection already exists
+    if grep -q "^$user,$host," "$SSH_SERVERS_FILE"; then
+        echo "[⚠️] The SSH connection $user@$host already exists."
         return 1
     fi
 
-    local user="$1"
-    local host="$2"
-    local port="${3:-22}"  # Optional port, default 22
-
-    # Conectar por SSH
-    ssh -p "$port" "$user@$host"
+    # Add the new connection
+    echo "$user,$host,$port" >> "$SSH_SERVERS_FILE"
+    echo "[✅] SSH connection $user@$host added successfully."
 }
 
+add_ssh_server_frontend() {
+    echo "[👤] Introduce the user:"
+    read -r -p "$CLI_PROMPT" user
+    echo "[💻] Introduce the host:"
+    read -r -p "$CLI_PROMPT" host
+    echo "[⚡] Introduce the port (leave empty for 22):"
+    read -r -p "$CLI_PROMPT" port
+
+    add_ssh_server_worker $user $host $port
+}
+
+# Function to remove an SSH server from the CSV file
+# $1 - user
+# $2 - host
+remove_ssh_server() {
+    local user="$1"
+    local host="$2"
+
+    if [[ -z "$user" || -z "$host" ]]; then
+        echo "[❌] User and host are required parameters."
+        return 2
+    fi
+
+    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+        echo "[⚠️] No saved SSH servers found."
+        return 1
+    fi
+
+    # Create a temporary file without the matching line and overwrite the original file
+    grep -v "^$user,$host," "$SSH_SERVERS_FILE" > temp.csv && mv temp.csv "$SSH_SERVERS_FILE"
+
+    echo "[✅] SSH connection $user@$host removed successfully."
+}
+
+list_ssh_servers() {
+    local opt="$1"
+    declare -A connections
+    local index=1  # Index for the keys
+
+    # Check the file exists
+    if [ ! -f "$SSH_SERVERS_FILE" ]; then
+        return 1
+    fi
+
+    # Read CSV file
+    while IFS=, read -r user host port; do
+        # Omit first line (header)
+        if [[ "$user" != "user" ]]; then
+            description="${user}@${host}"
+
+            if [[ "$opt" == "connect" ]]; then
+                command="ssh ${user}@${host} -p ${port}; exit 0"
+            elif [[ "$opt" == "remove" ]]; then
+                command="remove_ssh_server ${user} ${host}"
+            else
+                return 2
+            fi
+
+            # Guardar con índice numérico
+            connections["$index"]="${description}:${command}"
+            ((index++))
+        fi
+    done < "$SSH_SERVERS_FILE"
+
+    create_menu connections
+}
 
 #---------# UTIL FUNCTIONS #---------#
+
+number_to_emoji() {
+    local num="$1"
+    local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
+    local result=""
+
+    for (( i=0; i<${#num}; i++ )); do
+        digit="${num:i:1}"
+        result+="${emoji_digits[digit]}"
+    done
+
+    echo "$result"
+}
+
 press_any_key_to_continue() {
     echo " ↪️ Press any key to continue."
     read -rsn1
@@ -198,6 +298,12 @@ press_any_key_to_continue() {
 create_menu() {
     local -n menu_options=$1  # Array asociativo con las opciones y sus comandos
 
+    if [[ ${#menu_options[@]} -eq 0 ]]; then
+        echo " ❌ No options available."
+        press_any_key_to_continue
+        return 1
+    fi
+
     while true; do
         clear -x  # Clear screen before displaying the menu
         echo "=============================="
@@ -205,7 +311,8 @@ create_menu() {
         echo "=============================="
 
         for key in $(printf "%s\n" "${!menu_options[@]}" | sort -n); do
-            echo " $key️⃣  ${menu_options[$key]%%:*}"  # Muestra solo la descripción
+            emoji_key=$(number_to_emoji "$key")
+            echo " $emoji_key  ${menu_options[$key]%%:*}"  # Show only the description
         done
 
         echo " 0️⃣  Back"
@@ -237,9 +344,9 @@ main_menu() {
 
 ssh_menu(){
     declare -A options=(
-    [1]="Connect to SSH server:ssh_list_menu connect"
-    [2]="Add new SSH server:ssh_list_menu add"
-    [3]="Remove SSH server:ssh_list_menu remove"
+    [1]="Connect to SSH server:list_ssh_servers connect"
+    [2]="Add new SSH server:add_ssh_server_frontend; press_any_key_to_continue"
+    [3]="Remove SSH server:list_ssh_servers remove; press_any_key_to_continue"
     )
     create_menu options
 }
