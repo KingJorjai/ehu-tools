@@ -17,20 +17,20 @@ CLI_PROMPT=" > "
 #---------# SETUP FUNCTIONS #---------#
 
 setup_ldap() {
-    echo " 🔑 Enter your LDAP username:"
+    echo "[🔑] Enter your LDAP username:"
     read -r -p "$CLI_PROMPT" username
     echo "username=$username" > "$CREDENTIAL_FILE"
 
-    echo "🔐 Enter your LDAP password:"
+    echo "[🔐] Enter your LDAP password:"
     read -rs -p "$CLI_PROMPT" password
     echo "password=$password" >> "$CREDENTIAL_FILE"
 
     unset username password
-    echo " ✅ Credentials saved successfully."
+    echo "[✅] Credentials saved successfully."
 }
 
 setup_2fa() {
-    echo " 🛡️ Enter your 2FA secret:"
+    echo "[🛡️] Enter your 2FA secret:"
     read -r -p "$CLI_PROMPT" secret_2fa  # Read the 2FA secret
 
     # Guardar el secreto 2FA en el archivo, asegurándose de que se sobreescriba el archivo
@@ -40,7 +40,7 @@ setup_2fa() {
     unset secret_2fa
 
     # Confirmación
-    echo " ✅ 2FA secret saved successfully."
+    echo "[✅] 2FA secret saved successfully."
 }
 
 #---------# CONNECTION FUNCTIONS #---------#
@@ -75,7 +75,7 @@ is_vpn_connected() {
 connect_vpn() {
     # Check if already connected
     if is_vpn_connected; then
-        echo " ✅ You are already connected to the VPN."
+        echo "[✅] You are already connected to the VPN."
         return
     fi
 
@@ -86,43 +86,43 @@ connect_vpn() {
 
     # Check the credentials are valid
     if [[ -z "$username" ]] || [[ -z "$password" ]]; then
-        echo " ❌ LDAP credentials not set. Set them up first."
+        echo "[❌] LDAP credentials not set. Set them up first."
         return
     fi
 
     # Check if the oathtool command is available on the system
     if ! command -v oathtool &> /dev/null; then
-        echo " ❌ The oathtool command is not installed. Install it before proceeding."
+        echo "[❌] The oathtool command is not installed. Install it before proceeding."
         return
     fi
 
     # Obtain the 2FA code
-    echo " 🔄 Obtaining 2FA code..."
+    echo "[🔄] Obtaining 2FA code..."
     token="$(get_2fa_token)"
     if [[ -z "$token" ]]; then
-        echo "❌ Error obtaining the 2FA code. Ensure 2FA is set correctly."
+        echo "[❌] Error obtaining the 2FA code. Ensure 2FA is set correctly."
         return 1
     fi
 
     # Check Cisco VPN client
     if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo " ❌ Cisco VPN not found or not executable: $VPN_CLIENT."
+        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
 
         # Cisco VPN client not available
         # try to use openconnect
         if command -v openconnect &> /dev/null; then
-            echo " 🌐 Falling back to openconnect (has to be run as root)."
-            echo " 🔑 Connecting to VPN as $username..."
+            echo "[🌐] Falling back to openconnect (has to be run as root)."
+            echo "[🔑] Connecting to VPN as $username..."
             (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=anyconnect vpn.ehu.eus > /dev/null 2>&1
-            echo " ✅ VPN connected."
+            echo "[✅] VPN connected."
         else
-            echo " ❌ Could not find a compatible VPN client. Read the documentation for more information."
+            echo "[❌] Could not find a compatible VPN client. Read the documentation for more information."
         fi
 
     # Use Cisco VPN client
     else
 
-        echo " 🔑 Connecting to VPN as $username..."
+        echo "[🔑] Connecting to VPN as $username..."
 
         # Send credentials to the VPN client and start login, logging the process
         {
@@ -136,7 +136,7 @@ EOF
             echo "[$(date)] Connection successful."
         } >> "$LOG_FILE" 2>&1
 
-        echo " ✅ VPN connected."
+        echo "[✅] VPN connected."
     
         # Clear sensitive variables from memory
         unset username password token
@@ -146,30 +146,30 @@ EOF
 disconnect_vpn() {
     # Check if already disconnected
     if ! is_vpn_connected; then
-        echo " ✅ VPN is already disconnected."
+        echo "[✅] VPN is already disconnected."
         return 0
     fi
 
     # Check Cisco VPN client
     if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo " ❌ Cisco VPN not found or not executable: $VPN_CLIENT."
+        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
 
         # Cisco VPN client not available
         # try to use openconnect
         if command -v openconnect &> /dev/null; then
-            echo " 🌐 Falling back to openconnect (has to be run as root)."
+            echo "[🌐] Falling back to openconnect (has to be run as root)."
             sudo pkill -SIGINT openconnect
-            echo " 🔌 Disconnecting VPN..."
+            echo "[🔌] Disconnecting VPN..."
             sleep 1 # Wait for the process to finish
-            echo " ✅ VPN disconnected."
+            echo "[✅] VPN disconnected."
 
         else
-            echo " ❌ Could not find a compatible VPN client. Read the documentation for more information."
+            echo "[❌] Could not find a compatible VPN client. Read the documentation for more information."
         fi
     else
-        echo " 🔌 Disconnecting VPN..."
+        echo "[🔌] Disconnecting VPN..."
         "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
-        echo " ✅ VPN disconnected."
+        echo "[✅] VPN disconnected."
     fi
 
 }
