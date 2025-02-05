@@ -1,5 +1,5 @@
 # TODO
-- [ ] Allow configuring ehu-tool in `install.sh`.
+- [ ] Autodetect missing configuration on launch
 
 # COMPLETED
 - [x] Add SSH server manager.
