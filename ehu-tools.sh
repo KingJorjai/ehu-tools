@@ -184,7 +184,6 @@ press_any_key_to_continue() {
 create_menu() {
     local -n menu_options=$1  # Array asociativo con las opciones y sus comandos
 
-    printf '\n%.0s' $(seq 1 $(tput lines))
     while true; do
         clear -x  # Clear screen before displaying the menu
         echo "=============================="
@@ -232,6 +231,9 @@ ssh_menu(){
 }
 
 #---------# SCRIPT #---------#
+
+# Prepare blank canvas
+printf '\n%.0s' $(seq 1 $(tput lines))
 
 # Create config folder if not already
 mkdir -p $BASE_DIR
