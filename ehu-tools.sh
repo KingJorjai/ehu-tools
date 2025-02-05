@@ -237,13 +237,22 @@ remove_ssh_server() {
     # Create a temporary file without the matching line and overwrite the original file
     grep -v "^$user,$host," "$SSH_SERVERS_FILE" > temp.csv && mv temp.csv "$SSH_SERVERS_FILE"
 
-    echo "[✅] SSH connection $user@$host removed successfully."
+    # Reload SSH servers after deletion
+    list_ssh_servers
+
+    echo "[✅] SSH connection ${user}@${host} removed successfully."
 }
 
+# Updates the values of the ssh connection list
 list_ssh_servers() {
-    local opt="$1"
-    declare -A connections
     local index=1  # Index for the keys
+    local user
+    local host
+    local port
+
+    # Clear the arrays before reloading
+    unset SSH_CONNECTIONS_CONNECT
+    unset SSH_CONNECTIONS_REMOVE
 
     # Check the file exists
     if [ ! -f "$SSH_SERVERS_FILE" ]; then
@@ -256,22 +265,16 @@ list_ssh_servers() {
         if [[ "$user" != "user" ]]; then
             description="${user}@${host}"
 
-            if [[ "$opt" == "connect" ]]; then
-                command="ssh ${user}@${host} -p ${port}; exit 0"
-            elif [[ "$opt" == "remove" ]]; then
-                command="remove_ssh_server ${user} ${host}"
-            else
-                return 2
-            fi
+            command_connect="ssh ${user}@${host} -p ${port} && exit 0"
+            command_remove="remove_ssh_server ${user} ${host}; press_any_key_to_continue"
 
-            # Guardar con índice numérico
-            connections["$index"]="${description}:${command}"
+            SSH_CONNECTIONS_CONNECT["$index"]="${description}:${command_connect}"
+            SSH_CONNECTIONS_REMOVE["$index"]="${description}:${command_remove}"
             ((index++))
         fi
     done < "$SSH_SERVERS_FILE"
-
-    create_menu connections
 }
+
 
 #---------# UTIL FUNCTIONS #---------#
 
@@ -289,22 +292,16 @@ number_to_emoji() {
 }
 
 press_any_key_to_continue() {
-    echo " ↪️ Press any key to continue."
+    echo "[↪️] Press any key to continue."
     read -rsn1
             }
 
 #---------# CLI FUNCTIONS #---------#
 
 create_menu() {
-    local -n menu_options=$1  # Array asociativo con las opciones y sus comandos
-
-    if [[ ${#menu_options[@]} -eq 0 ]]; then
-        echo " ❌ No options available."
-        press_any_key_to_continue
-        return 1
-    fi
-
     while true; do
+        local -n menu_options=$1
+
         clear -x  # Clear screen before displaying the menu
         echo "=============================="
         echo "       🌐 EHU TOOLS 🛠️"
@@ -317,7 +314,14 @@ create_menu() {
 
         echo " 0️⃣  Back"
         echo "=============================="
-        read -rsn1 option  # Read a single character without requiring Enter
+
+        if [[ ${#menu_options[@]} -eq 0 ]]; then
+            echo "[❌] No options available."
+            press_any_key_to_continue
+            return 1
+        fi
+
+        read -r -p "$CLI_PROMPT" option  # Read a single character without requiring Enter
         echo  # Move to a new line
 
         if [[ "$option" == "0" ]]; then
@@ -325,7 +329,7 @@ create_menu() {
         elif [[ -n "${menu_options[$option]}" ]]; then
             eval "${menu_options[$option]#*:}"  # Ejecuta el comando asociado
         else
-            echo " ❌ Invalid option, try again."
+            echo "[❌] Invalid option, try again."
         fi
 
     done
@@ -344,9 +348,9 @@ main_menu() {
 
 ssh_menu(){
     declare -A options=(
-    [1]="Connect to SSH server:list_ssh_servers connect"
+    [1]="Connect to SSH server:list_ssh_servers; create_menu SSH_CONNECTIONS_CONNECT"
     [2]="Add new SSH server:add_ssh_server_frontend; press_any_key_to_continue"
-    [3]="Remove SSH server:list_ssh_servers remove; press_any_key_to_continue"
+    [3]="Remove SSH server:list_ssh_servers; create_menu SSH_CONNECTIONS_REMOVE"
     )
     create_menu options
 }
@@ -361,3 +365,4 @@ mkdir -p $BASE_DIR
 
 # Run the main menu
 main_menu
+clear -x
