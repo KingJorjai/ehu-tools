@@ -172,6 +172,20 @@ disconnect_vpn() {
 
 #---------# SSH FUNCTIONS #---------#
 
+ssh_connect() {
+    # Check arguments
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return 1
+    fi
+
+    local user="$1"
+    local host="$2"
+    local port="${3:-22}"  # Optional port, default 22
+
+    # Conectar por SSH
+    ssh -p "$port" "$user@$host"
+}
+
 
 #---------# UTIL FUNCTIONS #---------#
 press_any_key_to_continue() {
