@@ -170,9 +170,17 @@ disconnect_vpn() {
 
 }
 
+#---------# SSH FUNCTIONS #---------#
+
+
+#---------# UTIL FUNCTIONS #---------#
+press_any_key_to_continue() {
+    echo " ↪️ Press any key to continue."
+    read -rsn1
+            }
+
 #---------# CLI FUNCTIONS #---------#
 
-# $1 - Number of options
 create_menu() {
     local -n menu_options=$1  # Array asociativo con las opciones y sus comandos
 
@@ -187,32 +195,39 @@ create_menu() {
             echo " $key️⃣  ${menu_options[$key]%%:*}"  # Muestra solo la descripción
         done
 
-        echo " 0️⃣  Exit"
+        echo " 0️⃣  Back"
         echo "=============================="
         read -rsn1 option  # Read a single character without requiring Enter
         echo  # Move to a new line
 
         if [[ "$option" == "0" ]]; then
-            echo " 👋 Exiting..."
-            exit 0
+            return 0
         elif [[ -n "${menu_options[$option]}" ]]; then
             eval "${menu_options[$option]#*:}"  # Ejecuta el comando asociado
         else
             echo " ❌ Invalid option, try again."
         fi
 
-        echo " ↪️ Press any key to continue."
-        read -rsn1
     done
 }
 
 main_menu() {
     declare -A options=(
-    [1]="Connect to VPN:connect_vpn"
-    [2]="Disconnect from VPN:disconnect_vpn"
-    [3]="Set LDAP credentials:setup_ldap"
-    [4]="Set 2FA secret:setup_2fa"
-)
+    [1]="Connect to VPN:connect_vpn; press_any_key_to_continue"
+    [2]="Disconnect from VPN:disconnect_vpn; press_any_key_to_continue"
+    [3]="Manage SSH Servers:ssh_menu"
+    [4]="Set LDAP credentials:setup_ldap; press_any_key_to_continue"
+    [5]="Set 2FA secret:setup_2fa"
+    )
+    create_menu options
+}
+
+ssh_menu(){
+    declare -A options=(
+    [1]="Connect to SSH server:ssh_list_menu connect"
+    [2]="Add new SSH server:ssh_list_menu add"
+    [3]="Remove SSH server:ssh_list_menu remove"
+    )
     create_menu options
 }
 
