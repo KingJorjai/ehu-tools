@@ -176,6 +176,31 @@ disconnect_vpn() {
 
 #---------# SSH MANAGER FUNCTIONS #---------#
 
+ssh_connect() {
+    # Check arguments
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return 1
+    fi
+
+    local user="$1"
+    local host="$2"
+    local port="${3:-22}"  # Optional port, default 22
+
+    # Create the connection
+    printf "[⚠️] "
+    ssh -p "$port" "$user@$host"
+
+    # Check if the command failed
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        press_any_key_to_continue
+        return 1
+    else
+        return 0
+    fi
+}
+
+
 # Function to add an SSH server to the CSV file
 # $1 - user
 # $2 - host
@@ -265,7 +290,7 @@ list_ssh_servers() {
         if [[ "$user" != "user" ]]; then
             description="${user}@${host}"
 
-            command_connect="ssh ${user}@${host} -p ${port} && exit 0"
+            command_connect="ssh_connect ${user} ${host} ${port}"
             command_remove="remove_ssh_server ${user} ${host}; press_any_key_to_continue"
 
             SSH_CONNECTIONS_CONNECT["$index"]="${description}:${command_connect}"
