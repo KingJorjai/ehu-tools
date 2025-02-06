@@ -2,9 +2,10 @@
 
 #---------# VARIABLES #---------#
 
-# VPN
+# CISCO
 VPN_SERVER="vpn.ehu.es"
-VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
+CISCO_VPN_FILE="/opt/cisco/anyconnect/bin/vpn"
+CASMC="Cisco Anyconnect Secure Mobility Client"
 
 # EHUTOOLS
 BASE_DIR="$HOME/.config/ehu-tools"
@@ -13,8 +14,79 @@ SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 SSH_SERVERS_FILE="$BASE_DIR/ssh_servers.csv"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
 
+# GITHUB
+GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
+
 # MISCELLANEOUS
 CLI_PROMPT=" > "
+
+#---------# UTIL FUNCTIONS #---------#
+
+# Asks the user for a yes/no input
+# $1 - The question to ask
+yes_no_question() {
+    while true; do
+        read -r -p "$1 ([y]es/[n]o): " opt < /dev/tty
+        case "${opt,,}" in
+            y|yes) return 0 ;;
+            n|no) return 1 ;;
+            *) echo "[❌] Invalid input. Please enter 'y' or 'n'." ;;
+        esac
+    done
+}
+
+number_to_emoji() {
+    local num="$1"
+    local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
+    local result=""
+
+    for (( i=0; i<${#num}; i++ )); do
+        digit="${num:i:1}"
+        result+="${emoji_digits[digit]}"
+    done
+
+    echo "$result"
+}
+
+press_any_key_to_continue() {
+    echo "[↪️] Press any key to continue."
+    read -rsn1
+}
+
+# FILE EXISTS
+
+credential_file_exists() {
+    [[ -f $CREDENTIAL_FILE ]]
+}
+
+totp_secret_file_exists() {
+    [[ -f $SECRET_2FA_FILE ]]
+}
+
+ssh_connection_file_exists() {
+    [[ -f $SSH_SERVERS_FILE ]]
+}
+
+# CONFIG VALIDATION
+
+are_credentials_valid() {
+    # Check if credentials exist
+    if credential_file_exists ; then
+        source "$CREDENTIAL_FILE"
+    fi
+
+    [[ -n "$username" && -n "$password" ]]
+}
+
+is_totp_secret_valid() {
+    # Check if file exists
+    if totp_secret_file_exists; then
+        source $SECRET_2FA_FILE
+    fi
+
+    [[ -n "$secret_2fa" ]]
+}
+
 
 #---------# SETUP FUNCTIONS #---------#
 
@@ -45,10 +117,28 @@ setup_2fa() {
     echo "[✅] 2FA secret saved successfully."
 }
 
+on_launch_config_check() {
+    if ! are_credentials_valid; then
+        if yes_no_question "[⚠️] LDAP credentials are not set up. Do you want to do it now?"; then
+            clear -x
+            setup_ldap
+        fi
+    fi
+
+    clear -x
+
+    if ! is_totp_secret_valid; then
+        if yes_no_question "[⚠️] 2FA is not set up. Do you want to do it now?"; then
+            clear -x
+            setup_2fa
+        fi
+    fi
+}
+
 #---------# CONNECTION FUNCTIONS #---------#
 
 get_2fa_token() {
-    if [[ -f "$SECRET_2FA_FILE" ]]; then
+    if totp_secret_file_exists ; then
         source "$SECRET_2FA_FILE"
     fi
 
@@ -60,7 +150,7 @@ get_2fa_token() {
 }
 
 is_vpn_connected() {
-    if [[ ! -x "$VPN_CLIENT" ]]; then
+    if ! is_cisco_installed ; then
         # Check if openconnect is running
         if ps -A | grep -q '[o]penconnect'; then
             # openconnect is running
@@ -70,7 +160,7 @@ is_vpn_connected() {
         fi
     else
         # Check VPN connection status using the provided VPN client
-        "$VPN_CLIENT" -s status | grep -q "Connected"
+        "$CISCO_VPN_FILE" -s status | grep -q "Connected"
     fi
 }
 
@@ -81,16 +171,14 @@ connect_vpn() {
         return
     fi
 
-    # Check if credentials exist
-    if [[ -f $CREDENTIAL_FILE ]]; then
-        source "$CREDENTIAL_FILE"
-    fi
-
     # Check the credentials are valid
-    if [[ -z "$username" ]] || [[ -z "$password" ]]; then
+    if ! are_credentials_valid; then
         echo "[❌] LDAP credentials not set. Set them up first."
         return
     fi
+
+    # Load the user and the password
+    source "$CREDENTIAL_FILE"
 
     # Check if the oathtool command is available on the system
     if ! command -v oathtool &> /dev/null; then
@@ -107,8 +195,8 @@ connect_vpn() {
     fi
 
     # Check Cisco VPN client
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
+    if ! is_cisco_installed ; then
+        echo "[❌] $CASMC not found or not executable: $CISCO_VPN_FILE."
 
         # Cisco VPN client not available
         # try to use openconnect
@@ -129,7 +217,7 @@ connect_vpn() {
         # Send credentials to the VPN client and start login, logging the process
         {
             echo "[$(date)] Attempting connection with user: $username"
-            $VPN_CLIENT -s <<EOF
+            $CISCO_VPN_FILE -s <<EOF
 connect $VPN_SERVER
 $username
 $password
@@ -153,8 +241,8 @@ disconnect_vpn() {
     fi
 
     # Check Cisco VPN client
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
+    if ! is_cisco_installed ; then
+        echo "[❌] Cisco VPN not found or not executable: $CISCO_VPN_FILE."
 
         # Cisco VPN client not available
         # try to use openconnect
@@ -170,7 +258,7 @@ disconnect_vpn() {
         fi
     else
         echo "[🔌] Disconnecting VPN..."
-        "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
+        "$CISCO_VPN_FILE" -s disconnect &>> "$LOG_FILE"
         echo "[✅] VPN disconnected."
     fi
 
@@ -218,7 +306,7 @@ add_ssh_server_worker() {
     fi
 
     # Create the file with a header if it doesn't exist
-    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+    if ! ssh_connection_file_exists; then
         echo "user,host,port" > "$SSH_SERVERS_FILE"
     fi
 
@@ -256,7 +344,7 @@ remove_ssh_server() {
         return 2
     fi
 
-    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+    if ! ssh_connection_file_exists ; then
         echo "[⚠️] No saved SSH servers found."
         return 1
     fi
@@ -302,26 +390,16 @@ list_ssh_servers() {
     done < "$SSH_SERVERS_FILE"
 }
 
+#---------# CISCO FUNCTIONS #---------#
 
-#---------# UTIL FUNCTIONS #---------#
-
-number_to_emoji() {
-    local num="$1"
-    local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
-    local result=""
-
-    for (( i=0; i<${#num}; i++ )); do
-        digit="${num:i:1}"
-        result+="${emoji_digits[digit]}"
-    done
-
-    echo "$result"
+install_cisco() {
+    curl -sSL $GITHUB_CISCOINSTALL_URL | bash
 }
 
-press_any_key_to_continue() {
-    echo "[↪️] Press any key to continue."
-    read -rsn1
-            }
+is_cisco_installed() {
+    [[ -x "$CISCO_VPN_FILE" ]]
+}
+
 
 #---------# CLI FUNCTIONS #---------#
 
@@ -387,9 +465,13 @@ ssh_menu(){
 
 # Prepare blank canvas
 printf '\n%.0s' $(seq 1 $(tput lines))
+clear -x
 
 # Create config folder if not already
 mkdir -p $BASE_DIR
+
+# Run on launch config checks
+on_launch_config_check
 
 # Run the main menu
 main_menu

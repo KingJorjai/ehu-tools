@@ -1,7 +1,7 @@
 # TODO
-- [ ] Autodetect missing configuration on launch
 
 # COMPLETED
+- [x] Autodetect missing configuration on launch
 - [x] Add SSH server manager.
     - [x] Add SSH menu.
     - [x] Implement add, remove and connect functions.
