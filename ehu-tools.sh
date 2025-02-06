@@ -20,6 +20,52 @@ GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
 # MISCELLANEOUS
 CLI_PROMPT=" > "
 
+#---------# UTIL FUNCTIONS #---------#
+
+number_to_emoji() {
+    local num="$1"
+    local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
+    local result=""
+
+    for (( i=0; i<${#num}; i++ )); do
+        digit="${num:i:1}"
+        result+="${emoji_digits[digit]}"
+    done
+
+    echo "$result"
+}
+
+press_any_key_to_continue() {
+    echo "[↪️] Press any key to continue."
+    read -rsn1
+}
+
+# FILE EXISTS
+
+credential_file_exists() {
+    [[ -f $CREDENTIAL_FILE ]]
+}
+
+totp_secret_file_exists() {
+    [[ -f $SECRET_2FA_FILE ]]
+}
+
+ssh_connection_file_exists() {
+    [[ -f $SSH_SERVERS_FILE ]]
+}
+
+# CONFIG VALIDATION
+
+are_credentials_valid() {
+    # Check if credentials exist
+    if credential_file_exists ; then
+        source "$CREDENTIAL_FILE"
+    fi
+
+    [[ -n "$username" && -n "$password" ]]
+}
+
+
 #---------# SETUP FUNCTIONS #---------#
 
 setup_ldap() {
@@ -312,51 +358,6 @@ install_cisco() {
 
 is_cisco_installed() {
     [[ -x "$CISCO_VPN_FILE" ]]
-}
-
-#---------# UTIL FUNCTIONS #---------#
-
-number_to_emoji() {
-    local num="$1"
-    local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
-    local result=""
-
-    for (( i=0; i<${#num}; i++ )); do
-        digit="${num:i:1}"
-        result+="${emoji_digits[digit]}"
-    done
-
-    echo "$result"
-}
-
-press_any_key_to_continue() {
-    echo "[↪️] Press any key to continue."
-    read -rsn1
-}
-
-# FILE EXISTS
-
-credential_file_exists() {
-    [[ -f $CREDENTIAL_FILE ]]
-}
-
-totp_secret_file_exists() {
-    [[ -f $SECRET_2FA_FILE ]]
-}
-
-ssh_connection_file_exists() {
-    [[ -f $SSH_SERVERS_FILE ]]
-}
-
-# CONFIG VALIDATION
-
-are_credentials_valid() {
-    # Check if credentials exist
-    if credential_file_exists ; then
-        source "$CREDENTIAL_FILE"
-    fi
-
-    [[ -n "$username" && -n "$password" ]]
 }
 
 
