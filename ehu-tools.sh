@@ -85,16 +85,14 @@ connect_vpn() {
         return
     fi
 
-    # Check if credentials exist
-    if credential_file_exists ; then
-        source "$CREDENTIAL_FILE"
-    fi
-
     # Check the credentials are valid
-    if [[ -z "$username" ]] || [[ -z "$password" ]]; then
+    if ! are_credentials_valid; then
         echo "[❌] LDAP credentials not set. Set them up first."
         return
     fi
+
+    # Load the user and the password
+    source "$CREDENTIAL_FILE"
 
     # Check if the oathtool command is available on the system
     if ! command -v oathtool &> /dev/null; then
@@ -347,6 +345,18 @@ totp_secret_file_exists() {
 ssh_connection_file_exists() {
     [[ -f $SSH_SERVERS_FILE ]]
 }
+
+# CONFIG VALIDATION
+
+are_credentials_valid() {
+    # Check if credentials exist
+    if credential_file_exists ; then
+        source "$CREDENTIAL_FILE"
+    fi
+
+    [[ -n "$username" && -n "$password" ]]
+}
+
 
 #---------# CLI FUNCTIONS #---------#
 
