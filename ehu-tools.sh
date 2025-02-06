@@ -22,6 +22,19 @@ CLI_PROMPT=" > "
 
 #---------# UTIL FUNCTIONS #---------#
 
+# Asks the user for a yes/no input
+# $1 - The question to ask
+yes_no_question() {
+    while true; do
+        read -r -p "$1 ([y]es/[n]o): " opt < /dev/tty
+        case "${opt,,}" in
+            y|yes) return 0 ;;
+            n|no) return 1 ;;
+            *) echo "[❌] Invalid input. Please enter 'y' or 'n'." ;;
+        esac
+    done
+}
+
 number_to_emoji() {
     local num="$1"
     local emoji_digits=("0️⃣" "1️⃣" "2️⃣" "3️⃣" "4️⃣" "5️⃣" "6️⃣" "7️⃣" "8️⃣" "9️⃣")
@@ -65,6 +78,15 @@ are_credentials_valid() {
     [[ -n "$username" && -n "$password" ]]
 }
 
+is_totp_secret_valid() {
+    # Check if file exists
+    if totp_secret_file_exists; then
+        source $SECRET_2FA_FILE
+    fi
+
+    [[ -n "$secret_2fa" ]]
+}
+
 
 #---------# SETUP FUNCTIONS #---------#
 
@@ -93,6 +115,24 @@ setup_2fa() {
 
     # Confirmation
     echo "[✅] 2FA secret saved successfully."
+}
+
+on_launch_config_check() {
+    if ! are_credentials_valid; then
+        if yes_no_question "[⚠️] LDAP credentials are not set up. Do you want to do it now?"; then
+            clear -x
+            setup_ldap
+        fi
+    fi
+
+    clear -x
+
+    if ! is_totp_secret_valid; then
+        if yes_no_question "[⚠️] 2FA is not set up. Do you want to do it now?"; then
+            clear -x
+            setup_2fa
+        fi
+    fi
 }
 
 #---------# CONNECTION FUNCTIONS #---------#
@@ -425,9 +465,13 @@ ssh_menu(){
 
 # Prepare blank canvas
 printf '\n%.0s' $(seq 1 $(tput lines))
+clear -x
 
 # Create config folder if not already
 mkdir -p $BASE_DIR
+
+# Run on launch config checks
+on_launch_config_check
 
 # Run the main menu
 main_menu
