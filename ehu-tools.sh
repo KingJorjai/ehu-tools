@@ -52,7 +52,7 @@ setup_2fa() {
 #---------# CONNECTION FUNCTIONS #---------#
 
 get_2fa_token() {
-    if [[ -f "$SECRET_2FA_FILE" ]]; then
+    if totp_secret_file_exists ; then
         source "$SECRET_2FA_FILE"
     fi
 
@@ -86,7 +86,7 @@ connect_vpn() {
     fi
 
     # Check if credentials exist
-    if [[ -f $CREDENTIAL_FILE ]]; then
+    if credential_file_exists ; then
         source "$CREDENTIAL_FILE"
     fi
 
@@ -260,7 +260,7 @@ remove_ssh_server() {
         return 2
     fi
 
-    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+    if ! ssh_connection_file_exists ; then
         echo "[⚠️] No saved SSH servers found."
         return 1
     fi
@@ -334,7 +334,19 @@ number_to_emoji() {
 press_any_key_to_continue() {
     echo "[↪️] Press any key to continue."
     read -rsn1
-            }
+}
+
+credential_file_exists() {
+    [[ -f $CREDENTIAL_FILE ]]
+}
+
+totp_secret_file_exists() {
+    [[ -f $SECRET_2FA_FILE ]]
+}
+
+ssh_connection_file_exists() {
+    [[ -f $SSH_SERVERS_FILE ]]
+}
 
 #---------# CLI FUNCTIONS #---------#
 
