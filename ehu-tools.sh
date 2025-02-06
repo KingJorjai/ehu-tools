@@ -220,7 +220,7 @@ add_ssh_server_worker() {
     fi
 
     # Create the file with a header if it doesn't exist
-    if [[ ! -f "$SSH_SERVERS_FILE" ]]; then
+    if ! ssh_connection_file_exists; then
         echo "user,host,port" > "$SSH_SERVERS_FILE"
     fi
 
@@ -333,6 +333,8 @@ press_any_key_to_continue() {
     echo "[↪️] Press any key to continue."
     read -rsn1
 }
+
+# FILE EXISTS
 
 credential_file_exists() {
     [[ -f $CREDENTIAL_FILE ]]
