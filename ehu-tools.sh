@@ -2,9 +2,10 @@
 
 #---------# VARIABLES #---------#
 
-# VPN
+# CISCO
 VPN_SERVER="vpn.ehu.es"
-VPN_CLIENT="/opt/cisco/anyconnect/bin/vpn"
+CISCO_VPN_FILE="/opt/cisco/anyconnect/bin/vpn"
+CASMC="Cisco Anyconnect Secure Mobility Client"
 
 # EHUTOOLS
 BASE_DIR="$HOME/.config/ehu-tools"
@@ -12,6 +13,9 @@ CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 SSH_SERVERS_FILE="$BASE_DIR/ssh_servers.csv"
 LOG_FILE="$BASE_DIR/log"  # VPN log file
+
+# GITHUB
+GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
 
 # MISCELLANEOUS
 CLI_PROMPT=" > "
@@ -60,7 +64,7 @@ get_2fa_token() {
 }
 
 is_vpn_connected() {
-    if [[ ! -x "$VPN_CLIENT" ]]; then
+    if ! is_cisco_installed ; then
         # Check if openconnect is running
         if ps -A | grep -q '[o]penconnect'; then
             # openconnect is running
@@ -70,7 +74,7 @@ is_vpn_connected() {
         fi
     else
         # Check VPN connection status using the provided VPN client
-        "$VPN_CLIENT" -s status | grep -q "Connected"
+        "$CISCO_VPN_FILE" -s status | grep -q "Connected"
     fi
 }
 
@@ -107,8 +111,8 @@ connect_vpn() {
     fi
 
     # Check Cisco VPN client
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
+    if ! is_cisco_installed ; then
+        echo "[❌] $CASMC not found or not executable: $CISCO_VPN_FILE."
 
         # Cisco VPN client not available
         # try to use openconnect
@@ -129,7 +133,7 @@ connect_vpn() {
         # Send credentials to the VPN client and start login, logging the process
         {
             echo "[$(date)] Attempting connection with user: $username"
-            $VPN_CLIENT -s <<EOF
+            $CISCO_VPN_FILE -s <<EOF
 connect $VPN_SERVER
 $username
 $password
@@ -153,8 +157,8 @@ disconnect_vpn() {
     fi
 
     # Check Cisco VPN client
-    if [[ ! -x "$VPN_CLIENT" ]]; then
-        echo "[❌] Cisco VPN not found or not executable: $VPN_CLIENT."
+    if ! is_cisco_installed ; then
+        echo "[❌] Cisco VPN not found or not executable: $CISCO_VPN_FILE."
 
         # Cisco VPN client not available
         # try to use openconnect
@@ -170,7 +174,7 @@ disconnect_vpn() {
         fi
     else
         echo "[🔌] Disconnecting VPN..."
-        "$VPN_CLIENT" -s disconnect &>> "$LOG_FILE"
+        "$CISCO_VPN_FILE" -s disconnect &>> "$LOG_FILE"
         echo "[✅] VPN disconnected."
     fi
 
@@ -302,6 +306,15 @@ list_ssh_servers() {
     done < "$SSH_SERVERS_FILE"
 }
 
+#---------# CISCO FUNCTIONS #---------#
+
+install_cisco() {
+    curl -sSL $GITHUB_CISCOINSTALL_URL | bash
+}
+
+is_cisco_installed() {
+    [[ -x "$CISCO_VPN_FILE" ]]
+}
 
 #---------# UTIL FUNCTIONS #---------#
 
