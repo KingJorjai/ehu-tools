@@ -203,7 +203,7 @@ connect_vpn() {
         if command -v openconnect &> /dev/null; then
             echo "[🌐] Falling back to openconnect (has to be run as root)."
             echo "[🔑] Connecting to VPN as $username..."
-            (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=anyconnect vpn.ehu.eus > /dev/null 2>&1
+            (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=fortinet vpn2.ehu.eus > /dev/null 2>&1
             echo "[✅] VPN connected."
         else
             echo "[❌] Could not find a compatible VPN client. Read the documentation for more information."
