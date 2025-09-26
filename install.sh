@@ -9,11 +9,6 @@ INSTALL_NAME="ehu-tools"
 # GITHUB
 GITHUB_BASE_URL="https://raw.githubusercontent.com/KingJorjai/ehu-tools/refs/heads/"
 GITHUB_EHUTOOLS_URL="$GITHUB_BASE_URL/main/ehu-tools.sh"
-GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
-
-# CISCO
-CISCO_VPN_FILE="/opt/cisco/anyconnect/bin/vpn"
-CASMC="Cisco Anyconnect Secure Mobility Client"
 
 #---------# EHUTOOLS FUNCTIONS #---------#
 
@@ -37,16 +32,6 @@ install_ehutools() {
     fi
 
     echo "[✅] Installation complete. You can now run '$INSTALL_NAME' from anywhere."
-}
-
-#---------# CISCO FUNCTIONS #---------#
-
-install_cisco() {
-    curl -sSL $GITHUB_CISCOINSTALL_URL | bash
-}
-
-is_cisco_installed() {
-    [[ -x "$CISCO_VPN_FILE" ]]
 }
 
 #---------# UTIL FUNCTIONS #---------#
@@ -104,17 +89,9 @@ fi
 install_ehutools
 divider
 
-#----------------------------#
-
-if ! is_cisco_installed ; then
-    echo "[⚠️] $CASMC is not installed."
-    if ! yes_no_question "[❓] Do you want to install it?" ; then
-        echo "[❌] $CASMC not installed."
-        echo "[🌐] $INSTALL_NAME will use openconnect as fallback for VPN connection."
-    else
-        install_cisco
-    fi
-fi
+echo "[✅] Installation complete!"
+echo "[ℹ️] This tool uses openconnect for VPN connections."
+echo "[ℹ️] Make sure you have openconnect and oathtool installed on your system."
 
 #----------------------------#
 

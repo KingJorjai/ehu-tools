@@ -2,20 +2,11 @@
 
 #---------# VARIABLES #---------#
 
-# CISCO
-VPN_SERVER="vpn.ehu.es"
-CISCO_VPN_FILE="/opt/cisco/anyconnect/bin/vpn"
-CASMC="Cisco Anyconnect Secure Mobility Client"
-
 # EHUTOOLS
 BASE_DIR="$HOME/.config/ehu-tools"
 CREDENTIAL_FILE="$BASE_DIR/credentials.sh"
 SECRET_2FA_FILE="$BASE_DIR/secret_2fa.sh"
 SSH_SERVERS_FILE="$BASE_DIR/ssh_servers.csv"
-LOG_FILE="$BASE_DIR/log"  # VPN log file
-
-# GITHUB
-GITHUB_CISCOINSTALL_URL="$GITHUB_BASE_URL/main/cisco_install.sh"
 
 # MISCELLANEOUS
 CLI_PROMPT=" > "
@@ -150,17 +141,12 @@ get_2fa_token() {
 }
 
 is_vpn_connected() {
-    if ! is_cisco_installed ; then
-        # Check if openconnect is running
-        if ps -A | grep -q '[o]penconnect'; then
-            # openconnect is running
-            return 0
-        else
-            return 1
-        fi
+    # Check if openconnect is running
+    if ps -A | grep -q '[o]penconnect'; then
+        # openconnect is running
+        return 0
     else
-        # Check VPN connection status using the provided VPN client
-        "$CISCO_VPN_FILE" -s status | grep -q "Connected"
+        return 1
     fi
 }
 
@@ -186,6 +172,12 @@ connect_vpn() {
         return
     fi
 
+    # Check if openconnect is available
+    if ! command -v openconnect &> /dev/null; then
+        echo "[❌] openconnect is not installed. Please install it first."
+        return
+    fi
+
     # Obtain the 2FA code
     echo "[🔄] Obtaining 2FA code..."
     token="$(get_2fa_token)"
@@ -194,43 +186,17 @@ connect_vpn() {
         return 1
     fi
 
-    # Check Cisco VPN client
-    if ! is_cisco_installed ; then
-        echo "[❌] $CASMC not found or not executable: $CISCO_VPN_FILE."
-
-        # Cisco VPN client not available
-        # try to use openconnect
-        if command -v openconnect &> /dev/null; then
-            echo "[🌐] Falling back to openconnect (has to be run as root)."
-            echo "[🔑] Connecting to VPN as $username..."
-            (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=fortinet vpn2.ehu.eus > /dev/null 2>&1
-            echo "[✅] VPN connected."
-        else
-            echo "[❌] Could not find a compatible VPN client. Read the documentation for more information."
-        fi
-
-    # Use Cisco VPN client
-    else
-
-        echo "[🔑] Connecting to VPN as $username..."
-
-        # Send credentials to the VPN client and start login, logging the process
-        {
-            echo "[$(date)] Attempting connection with user: $username"
-            $CISCO_VPN_FILE -s <<EOF
-connect $VPN_SERVER
-$username
-$password
-$token
-EOF
-            echo "[$(date)] Connection successful."
-        } >> "$LOG_FILE" 2>&1
-
-        echo "[✅] VPN connected."
+    echo "[🔑] Connecting to VPN as $username..."
+    (echo "$password"; echo "$token") | sudo openconnect --background --user="$username" --protocol=fortinet vpn2.ehu.eus > /dev/null 2>&1
     
-        # Clear sensitive variables from memory
-        unset username password token
+    if [ $? -eq 0 ]; then
+        echo "[✅] VPN connected."
+    else
+        echo "[❌] Failed to connect to VPN."
     fi
+
+    # Clear sensitive variables from memory
+    unset username password token
 }
 
 disconnect_vpn() {
@@ -240,28 +206,15 @@ disconnect_vpn() {
         return 0
     fi
 
-    # Check Cisco VPN client
-    if ! is_cisco_installed ; then
-        echo "[❌] Cisco VPN not found or not executable: $CISCO_VPN_FILE."
-
-        # Cisco VPN client not available
-        # try to use openconnect
-        if command -v openconnect &> /dev/null; then
-            echo "[🌐] Falling back to openconnect (has to be run as root)."
-            sudo pkill -SIGINT openconnect
-            echo "[🔌] Disconnecting VPN..."
-            sleep 1 # Wait for the process to finish
-            echo "[✅] VPN disconnected."
-
-        else
-            echo "[❌] Could not find a compatible VPN client. Read the documentation for more information."
-        fi
-    else
-        echo "[🔌] Disconnecting VPN..."
-        "$CISCO_VPN_FILE" -s disconnect &>> "$LOG_FILE"
+    echo "[🔌] Disconnecting VPN..."
+    sudo pkill -SIGINT openconnect
+    sleep 1 # Wait for the process to finish
+    
+    if ! is_vpn_connected; then
         echo "[✅] VPN disconnected."
+    else
+        echo "[❌] Failed to disconnect VPN."
     fi
-
 }
 
 #---------# SSH MANAGER FUNCTIONS #---------#
@@ -389,17 +342,6 @@ list_ssh_servers() {
         fi
     done < "$SSH_SERVERS_FILE"
 }
-
-#---------# CISCO FUNCTIONS #---------#
-
-install_cisco() {
-    curl -sSL $GITHUB_CISCOINSTALL_URL | bash
-}
-
-is_cisco_installed() {
-    [[ -x "$CISCO_VPN_FILE" ]]
-}
-
 
 #---------# CLI FUNCTIONS #---------#
 
