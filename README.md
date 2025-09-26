@@ -2,6 +2,10 @@
 
 A set of CLI utilities for managing LDAP authentication, VPN connections, and 2FA for the **University of the Basque Country (UPV/EHU)**.  
 
+> [!WARNING]
+> Due to the VPN system of the University recently changing, this feature is not working at the moment.
+> Migration from `anyconnect` to `fortinet` is planned for the next update.
+
 ## 🚀 Features  
 - 🔑 **LDAP Authentication**: Store and use your EHU credentials securely.  
 - 🛡 **2FA Support**: Generate time-based one-time passwords (TOTP) using `oathtool`.  
@@ -12,7 +16,7 @@ A set of CLI utilities for managing LDAP authentication, VPN connections, and 2F
 - `bash`
 - `oathtool` (for 2FA support)
 - One of the following VPN Clients
-  - `Cisco Anyconnect Secure Mobility Client` (no root required)
+  - ~~`Cisco Anyconnect Secure Mobility Client` (no root required)~~
   - `openconnect` (root required) 
 
 ## 📥 Installation  
